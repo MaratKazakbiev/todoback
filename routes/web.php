@@ -21,12 +21,7 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-Route::get('/params', function(Request $request){
-    $validate = validator(['title' => $request->title],['title' => ['required', 'string']]);
-    $title = $validate->validate()['title'];
-    dd($title);
 
-});
 
 
 

@@ -12,15 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('todos', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+            $table->id('todo_id');
 
             $table->string('title');
-            $table->boolean('isActive')->default(true);
+            $table->boolean('is_active')->default(true);
 
             $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users');
+            $table->foreign('user_id')->references('user_id')->on('users');
 
+            $table->timestamps();
 
         });
     }

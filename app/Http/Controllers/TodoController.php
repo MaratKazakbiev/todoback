@@ -3,69 +3,163 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\User;
 use App\Models\Todo;
+use Illuminate\Support\Str;
+use Exception;
 
 class TodoController extends Controller
 {
 
-    //Создаем задачу
-    public function CreateTodo(Request $request){
+    public function create_todo(Request $request){
 
-        $validate = validator(['title' => $request->title],['title' => ['required', 'string']]);
-        $title = $validate->validate()['title'];
-        $id = $request->id;
+        try{
 
-        if ($title && $id) {
+            $validated = $request->validate([
+                'title' => ['required', 'string'],
+                'user_id' => ['required'],
+            ]);
 
-            Todo::create(['title' => $title, 'user_id' => $id]);
+            $user_id = $validated['user_id'];
+            $user = User::where('user_id', $user_id)->get();
+            if (!$user){
 
-        }else{
+                throw new Exception('Пользователь не найден');
+            }
 
-            $error = 'Ошибка ввода';
-            return response()->json($error);
+            $data = [
+                'title' => $validated['title'],
+                'user_id' => $validated['user_id'],
+            ];
+
+            Todo::create($data);
+            return self::send_success();
+
+        }catch(Exception $error){
+
+            return self::send_error($error->getMessage());
+
+        }
+    }
+
+    public function get_todos(Request $request){
+
+        try{
+
+            $user_id = $request->validate([
+                'user_id' => ['required'],
+            ]);
+
+            $user = User::where('user_id', $user_id)->get();
+            if (!$user){
+                throw new Exception('Пользователь не найден');
+            }
+
+            $todos = Todo::where('user_id', $user_id)->get();
+            return self::send_success();
+
+        }catch(Exception $error){
+
+            return self::send_error($error->getMessage());
 
         }
 
     }
 
-    //Получаем все задачи пользователя
-    public function GetTodos(Request $request){
+    public function update_todo(Request $request){
 
-        $id = $request->id;
+        try{
 
-        $todos = Todo::where('user_id', $id);
+            $validated = $request->validate([
+                'user_id' => ['required'],
+                'todo_id' => ['required'],
+            ]);
 
-        return response()->json($todos);
+            $user_id = $validated['user_id'];
+            $todo_id = $validated['todo_id'];
+
+            $user = User::where('user_id', $user_id)->get();
+            if (!$user){
+                throw new Exception('Пользователь не найден');
+            }
+
+            $todo = Todo::where('todo_id', $todo_id)->get()->first();
+
+            if ($todo->is_active === true){
+
+                $todo->is_active = false;
+                $todo->save();
+
+            }else{
+
+                $todo->is_active = true;
+                $todo->save();
+
+            }
+
+            return self::send_success();
+
+        }catch(Exception $error){
+
+            return self::send_error($error->getMessage());
+
+        }
 
     }
 
-    //Обновляем статус задачи
-    public function UpdateTodo(Request $request){
+    public function delete_todo(Request $request){
 
-        $id = $request->id;
+        try{
 
-        $todo = Todo::find($id);
-        $todo->isActive = !($todo->isActive);
-        $todo->save();
+            $validated = $request->validate([
+                'user_id' => ['required'],
+                'todo_id' => ['required'],
+            ]);
 
+            $user_id = $validated['user_id'];
+            $todo_id = $validated['todo_id'];
+
+            $user = User::where('user_id', $user_id)->get();
+            if (!$user){
+                throw new Exception('Пользователь не найден');
+            }
+
+            $todo = Todo::where('todo_id', $todo_id)->get()->first()->delete();
+
+            return self::send_success();
+
+        }catch(Exception $error){
+
+            return self::send_error($error->getMessage());
+
+        }
 
     }
 
-    //Удаляем определенную задачу пользователя
-    public function DeleteTodo(Request $request){
+    public function delete_todos(Request $request){
 
-        $id = $request->id;
+        try{
 
-        Todo:where('id', $id)->delete();
+            $user_id = $request->validate(['user_id' => ['required']]);
 
-    }
+            $user = User::where('user_id', $user_id)->get();
+            if (!$user){
+                throw new Exception('Пользователь не найден');
+            }
 
-    //Удаляем все задачи пользователя
-    public function DeleteTodos(Request $request){
+            $todos = Todo::where('user_id', $user_id)->get();
 
-        $id = $request->id;
+            if ($todos->count() > 0){
+                foreach ($todos as $todo){
+                    $todo->delete();
+                }
+            }
 
-        Todo:where('user_id', $id)->delete();
+        }catch(Exception $error){
+
+            return self::send_error($error->getMessage());
+
+        }
 
     }
 }
